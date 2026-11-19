@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">KisanDirect</string>
+    <string name="auth_tagline">Zero Middlemen · Direct Farm-Gate Market</string>
+    <string name="maps_key_banner">Add MAPS_API_KEY in AI Studio Secrets for full Google Maps tiles. Interactive proximity radar is active now.</string>
+</resources>

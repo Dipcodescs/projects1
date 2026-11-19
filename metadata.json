@@ -1,0 +1,6 @@
+{
+  "name": "KisanDirect",
+  "description": "Direct farm-to-market marketplace connecting farmers, nearby consumers, and delivery drivers with transparent farm-gate pricing, verified farmer ratings, and map-based discovery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

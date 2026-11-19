@@ -1,0 +1,394 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLatLng(lat, lng) {
+      return lat is number && lat >= -90.0 && lat <= 90.0 &&
+             lng is number && lng >= -180.0 && lng <= 180.0;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isRole(expectedRole) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == expectedRole;
+    }
+
+    // 3. Entity Validation Blueprints (O(N) Exact Keyset & Anti-Update-Gap)
+
+    function isValidUserPrivateProfile(data) {
+      return data.keys().size() == 16 &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.role is string && data.role in ['CONSUMER', 'FARMER', 'DRIVER'] &&
+             data.phone is string && data.phone.size() <= 20 &&
+             data.kycStatus is string && data.kycStatus in ['UNVERIFIED', 'PENDING', 'VERIFIED'] &&
+             data.farmName is string && data.farmName.size() <= 80 &&
+             data.city is string && data.city.size() <= 60 &&
+             data.defaultAddress is string && data.defaultAddress.size() <= 200 &&
+             isValidLatLng(data.latitude, data.longitude) &&
+             data.languageCode is string && data.languageCode in ['en', 'hi', 'ta', 'mr'] &&
+             data.vehicleType is string && data.vehicleType.size() <= 40 &&
+             data.vehiclePlate is string && data.vehiclePlate.size() <= 20 &&
+             data.driverActive is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPublicProfile(data) {
+      return ((data.keys().size() == 16 && !('lastReviewedOrderId' in data)) ||
+              (data.keys().size() == 17 && 'lastReviewedOrderId' in data)) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.role is string && data.role in ['CONSUMER', 'FARMER', 'DRIVER'] &&
+             data.farmName is string && data.farmName.size() <= 80 &&
+             data.city is string && data.city.size() <= 60 &&
+             isValidLatLng(data.latitude, data.longitude) &&
+             data.kycVerified is bool &&
+             data.averageRating is number && data.averageRating >= 0.0 && data.averageRating <= 5.0 &&
+             data.ratingSum is int && data.ratingSum >= 0 && data.ratingSum <= 1000000 &&
+             data.reviewCount is int && data.reviewCount >= 0 && data.reviewCount <= 200000 &&
+             data.completedDeliveries is int && data.completedDeliveries >= 0 && data.completedDeliveries <= 200000 &&
+             data.vehicleType is string && data.vehicleType.size() <= 40 &&
+             data.visibility is string && data.visibility == 'PUBLIC' &&
+             (!('lastReviewedOrderId' in data) || data.lastReviewedOrderId == null ||
+               (data.lastReviewedOrderId is string && data.lastReviewedOrderId.size() <= 128)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidProduceListing(data) {
+      return ((data.keys().size() == 16 && !('photoBase64' in data)) ||
+              (data.keys().size() == 17 && 'photoBase64' in data)) &&
+             data.farmerId is string && data.farmerId.size() >= 1 && data.farmerId.size() <= 128 &&
+             data.farmerName is string && data.farmerName.size() >= 1 && data.farmerName.size() <= 60 &&
+             data.farmName is string && data.farmName.size() >= 1 && data.farmName.size() <= 80 &&
+             data.cropName is string && data.cropName.size() >= 2 && data.cropName.size() <= 60 &&
+             data.category is string && data.category in ['VEGETABLES', 'FRUITS', 'GRAINS', 'DAIRY_HERBS'] &&
+             data.pricePerKg is number && data.pricePerKg > 0 && data.pricePerKg <= 100000 &&
+             data.marketComparePricePerKg is number && data.marketComparePricePerKg > 0 && data.marketComparePricePerKg <= 150000 &&
+             data.availableQtyKg is number && data.availableQtyKg >= 0 && data.availableQtyKg <= 50000 &&
+             data.harvestDate is string && data.harvestDate.size() >= 4 && data.harvestDate.size() <= 32 &&
+             data.description is string && data.description.size() <= 400 &&
+             data.city is string && data.city.size() >= 1 && data.city.size() <= 60 &&
+             isValidLatLng(data.latitude, data.longitude) &&
+             (!('photoBase64' in data) || data.photoBase64 == null ||
+               (data.photoBase64 is string && data.photoBase64.size() <= 75000)) &&
+             data.status is string && data.status in ['ACTIVE', 'SOLD_OUT', 'ARCHIVED'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidOrder(data) {
+      return ((data.keys().size() == 27 && !('deliveredAt' in data)) ||
+              (data.keys().size() == 28 && 'deliveredAt' in data)) &&
+             data.consumerId is string && data.consumerId.size() >= 1 && data.consumerId.size() <= 128 &&
+             data.consumerName is string && data.consumerName.size() >= 1 && data.consumerName.size() <= 60 &&
+             data.farmerId is string && data.farmerId.size() >= 1 && data.farmerId.size() <= 128 &&
+             data.farmerName is string && data.farmerName.size() >= 1 && data.farmerName.size() <= 60 &&
+             data.farmName is string && data.farmName.size() >= 1 && data.farmName.size() <= 80 &&
+             data.driverId is string && data.driverId.size() <= 128 &&
+             data.driverName is string && data.driverName.size() <= 60 &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 20 && data.items[0] is map &&
+             data.totalWeightKg is number && data.totalWeightKg > 0 && data.totalWeightKg <= 50000 &&
+             data.subtotalAmount is number && data.subtotalAmount > 0 && data.subtotalAmount <= 10000000 &&
+             data.farmerPayoutAmount is number && data.farmerPayoutAmount > 0 && data.farmerPayoutAmount <= 10000000 &&
+             data.driverPayoutAmount is number && data.driverPayoutAmount >= 0 && data.driverPayoutAmount <= 1000000 &&
+             data.platformFeeAmount is number && data.platformFeeAmount >= 0 && data.platformFeeAmount <= 1000000 &&
+             data.totalAmount is number && data.totalAmount > 0 && data.totalAmount <= 10000000 &&
+             data.paymentStatus is string && data.paymentStatus in ['PAID_SPLIT_SETTLED', 'PENDING'] &&
+             data.paymentRef is string && data.paymentRef.size() >= 4 && data.paymentRef.size() <= 64 &&
+             data.deliveryStatus is string && data.deliveryStatus in ['READY_FOR_PICKUP', 'ASSIGNED', 'PICKED_UP', 'EN_ROUTE', 'DELIVERED'] &&
+             data.pickupAddress is string && data.pickupAddress.size() >= 1 && data.pickupAddress.size() <= 160 &&
+             isValidLatLng(data.pickupLat, data.pickupLng) &&
+             data.deliveryAddress is string && data.deliveryAddress.size() >= 3 && data.deliveryAddress.size() <= 200 &&
+             isValidLatLng(data.deliveryLat, data.deliveryLng) &&
+             data.distanceKm is number && data.distanceKm >= 0 && data.distanceKm <= 5000 &&
+             data.reviewed is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt) &&
+             (!('deliveredAt' in data) || data.deliveredAt == null || isValidTimestamp(data.deliveredAt));
+    }
+
+    function isValidReview(data) {
+      return data.keys().size() == 10 &&
+             data.orderId is string && isValidId(data.orderId) &&
+             data.farmerId is string && data.farmerId.size() >= 1 && data.farmerId.size() <= 128 &&
+             data.farmerName is string && data.farmerName.size() >= 1 && data.farmerName.size() <= 60 &&
+             data.consumerId is string && data.consumerId.size() >= 1 && data.consumerId.size() <= 128 &&
+             data.consumerName is string && data.consumerName.size() >= 1 && data.consumerName.size() <= 60 &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() >= 3 && data.comment.size() <= 500 &&
+             data.cropSummary is string && data.cropSummary.size() >= 1 && data.cropSummary.size() <= 120 &&
+             data.verifiedPurchase is bool && data.verifiedPurchase == true &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidPayout(data) {
+      return data.keys().size() == 6 &&
+             data.orderId is string && data.orderId.size() <= 128 &&
+             data.entryType is string && data.entryType in ['DELIVERY_EARNING', 'FARMER_SETTLEMENT', 'WITHDRAWAL'] &&
+             data.amount is number && data.amount > 0 && data.amount <= 10000000 &&
+             data.status is string && data.status in ['CREDITED', 'WITHDRAWN'] &&
+             data.note is string && data.note.size() >= 1 && data.note.size() <= 120 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // 4. Collection Rules
+
+    // Private User Profile (Strict Owner-Only PII Isolation)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserPrivateProfile(incoming()) &&
+                       incoming().userId == request.auth.uid;
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidUserPrivateProfile(incoming()) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'role', 'phone', 'kycStatus', 'farmName',
+                         'city', 'defaultAddress', 'latitude', 'longitude', 'languageCode',
+                         'vehicleType', 'vehiclePlate', 'driverActive', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      // User-Scoped Immutable Earnings & Payout Ledger
+      match /payouts/{payoutId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(payoutId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(payoutId) &&
+                         request.auth.uid == userId &&
+                         isValidPayout(incoming());
+        allow update, delete: if false;
+      }
+    }
+
+    // Non-PII Public Profiles (Farmer & Driver Marketplace Cards + Atomic Ratings)
+    match /public_profiles/{profileId} {
+      allow get: if isSignedIn() && isValidId(profileId) &&
+                    (request.auth.uid == profileId || (resource != null && existing().visibility == 'PUBLIC'));
+      allow list: if isSignedIn() && existing().visibility == 'PUBLIC';
+
+      allow create: if isSignedIn() &&
+                       isValidId(profileId) &&
+                       request.auth.uid == profileId &&
+                       isValidPublicProfile(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().averageRating == 0.0 &&
+                       incoming().ratingSum == 0 &&
+                       incoming().reviewCount == 0 &&
+                       incoming().completedDeliveries == 0;
+
+      allow update: if isSignedIn() &&
+                       isValidId(profileId) &&
+                       isValidPublicProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().visibility == existing().visibility && (
+                         // Action 1: Owner updates public profile fields (cannot forge ratings)
+                         (request.auth.uid == profileId &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'displayName', 'role', 'farmName', 'city', 'latitude', 'longitude',
+                            'kycVerified', 'vehicleType', 'updatedAt'
+                          ])) ||
+                         // Action 2: Driver increments own completedDeliveries by 1
+                         (request.auth.uid == profileId &&
+                          incoming().completedDeliveries == existing().completedDeliveries + 1 &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'completedDeliveries', 'updatedAt'
+                          ])) ||
+                         // Action 3: Consumer atomically updates farmer rating with verified review doc
+                         (incoming().reviewCount == existing().reviewCount + 1 &&
+                          incoming().ratingSum >= existing().ratingSum + 1 &&
+                          incoming().ratingSum <= existing().ratingSum + 5 &&
+                          'lastReviewedOrderId' in incoming() &&
+                          isValidId(incoming().lastReviewedOrderId) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'ratingSum', 'reviewCount', 'averageRating', 'lastReviewedOrderId', 'updatedAt'
+                          ]) &&
+                          existsAfter(/databases/$(database)/documents/reviews/$(incoming().lastReviewedOrderId)))
+                       );
+
+      allow delete: if isSignedIn() && isValidId(profileId) && request.auth.uid == profileId;
+    }
+
+    // Produce Listings (Farmer RBAC + Atomic Consumer Stock Decrement)
+    match /produce_listings/{listingId} {
+      allow get: if isSignedIn() && isValidId(listingId) &&
+                    (resource == null || existing().status == 'ACTIVE' || existing().status == 'SOLD_OUT' || existing().farmerId == request.auth.uid);
+      allow list: if isSignedIn() &&
+                     (existing().status == 'ACTIVE' || existing().farmerId == request.auth.uid);
+
+      allow create: if isSignedIn() &&
+                       isValidId(listingId) &&
+                       isValidProduceListing(incoming()) &&
+                       incoming().farmerId == request.auth.uid &&
+                       incoming().status == 'ACTIVE' &&
+                       isRole('FARMER');
+
+      allow update: if isSignedIn() &&
+                       isValidId(listingId) &&
+                       isValidProduceListing(incoming()) &&
+                       incoming().farmerId == existing().farmerId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Owning Farmer edits listing details/price/stock
+                         (existing().farmerId == request.auth.uid &&
+                          isRole('FARMER') &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'farmerName', 'farmName', 'cropName', 'category', 'pricePerKg',
+                            'marketComparePricePerKg', 'availableQtyKg', 'harvestDate',
+                            'description', 'city', 'latitude', 'longitude', 'photoBase64',
+                            'status', 'updatedAt'
+                          ])) ||
+                         // Action 2: Atomic checkout stock decrement only (cannot alter price/name)
+                         (existing().status == 'ACTIVE' &&
+                          incoming().availableQtyKg < existing().availableQtyKg &&
+                          incoming().availableQtyKg >= 0 &&
+                          ((incoming().availableQtyKg == 0 && incoming().status == 'SOLD_OUT') ||
+                           (incoming().availableQtyKg > 0 && incoming().status == 'ACTIVE')) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'availableQtyKg', 'status', 'updatedAt'
+                          ]))
+                       );
+
+      allow delete: if isSignedIn() &&
+                       isValidId(listingId) &&
+                       existing().farmerId == request.auth.uid &&
+                       isRole('FARMER');
+    }
+
+    // Orders & Delivery Dispatch Workflow (Strict Forward State Machine + Terminal Lock)
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (
+        existing().consumerId == request.auth.uid ||
+        existing().farmerId == request.auth.uid ||
+        existing().driverId == request.auth.uid ||
+        (existing().deliveryStatus == 'READY_FOR_PICKUP' && existing().driverId == '' && isRole('DRIVER'))
+      );
+
+      allow list: if isSignedIn() && (
+        existing().consumerId == request.auth.uid ||
+        existing().farmerId == request.auth.uid ||
+        existing().driverId == request.auth.uid ||
+        (existing().deliveryStatus == 'READY_FOR_PICKUP' && existing().driverId == '')
+      );
+
+      allow create: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       isValidOrder(incoming()) &&
+                       incoming().consumerId == request.auth.uid &&
+                       incoming().driverId == '' &&
+                       incoming().driverName == '' &&
+                       incoming().deliveryStatus == 'READY_FOR_PICKUP' &&
+                       incoming().reviewed == false &&
+                       !('deliveredAt' in incoming()) &&
+                       exists(/databases/$(database)/documents/public_profiles/$(incoming().farmerId));
+
+      allow update: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       isValidOrder(incoming()) &&
+                       canUpdateOrder(orderId, incoming(), existing());
+
+      allow delete: if false;
+    }
+
+    function canUpdateOrder(orderId, inc, ext) {
+      let diffKeys = inc.diff(ext).affectedKeys();
+      return inc.consumerId == ext.consumerId &&
+             inc.farmerId == ext.farmerId &&
+             inc.createdAt == ext.createdAt && (
+               // Action 1-4: Driver state machine transitions (strictly forward, no skipping)
+               (
+                 (
+                   (ext.deliveryStatus == 'READY_FOR_PICKUP' &&
+                    ext.driverId == '' &&
+                    inc.driverId == request.auth.uid &&
+                    inc.driverName.size() >= 1 &&
+                    inc.deliveryStatus == 'ASSIGNED' &&
+                    diffKeys.hasOnly(['driverId', 'driverName', 'deliveryStatus', 'updatedAt'])) ||
+                   (ext.driverId == request.auth.uid &&
+                    diffKeys.hasOnly(['deliveryStatus', 'updatedAt']) && (
+                      (ext.deliveryStatus == 'ASSIGNED' && inc.deliveryStatus == 'PICKED_UP') ||
+                      (ext.deliveryStatus == 'PICKED_UP' && inc.deliveryStatus == 'EN_ROUTE')
+                    )) ||
+                   (ext.driverId == request.auth.uid &&
+                    ext.deliveryStatus == 'EN_ROUTE' &&
+                    inc.deliveryStatus == 'DELIVERED' &&
+                    'deliveredAt' in inc &&
+                    isValidTimestamp(inc.deliveredAt) &&
+                    diffKeys.hasOnly(['deliveryStatus', 'deliveredAt', 'updatedAt']))
+                 ) && isRole('DRIVER')
+               ) ||
+               // Action 5: Consumer marks delivered order reviewed atomically with verified review
+               (ext.deliveryStatus == 'DELIVERED' &&
+                ext.reviewed == false &&
+                ext.consumerId == request.auth.uid &&
+                inc.reviewed == true &&
+                diffKeys.hasOnly(['reviewed', 'updatedAt']) &&
+                existsAfter(/databases/$(database)/documents/reviews/$(orderId)))
+             );
+    }
+
+    // Verified Purchase Farmer Ratings & Reviews (Deterministic reviewId == orderId)
+    function isVerifiedDeliveredOrderForReview(reviewId, inc) {
+      let orderPath = /databases/$(database)/documents/orders/$(reviewId);
+      return exists(orderPath) &&
+             get(orderPath).data.consumerId == request.auth.uid &&
+             get(orderPath).data.farmerId == inc.farmerId &&
+             get(orderPath).data.deliveryStatus == 'DELIVERED' &&
+             get(orderPath).data.reviewed == false;
+    }
+
+    match /reviews/{reviewId} {
+      allow get: if isSignedIn() && isValidId(reviewId) && (resource == null || existing().verifiedPurchase == true);
+      allow list: if isSignedIn() && existing().verifiedPurchase == true;
+
+      allow create: if isSignedIn() &&
+                       isValidId(reviewId) &&
+                       isValidReview(incoming()) &&
+                       incoming().consumerId == request.auth.uid &&
+                       incoming().orderId == reviewId &&
+                       incoming().verifiedPurchase == true &&
+                       isVerifiedDeliveredOrderForReview(reviewId, incoming());
+
+      allow update, delete: if false;
+    }
+  }
+}

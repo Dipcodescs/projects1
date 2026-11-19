@@ -1,0 +1,573 @@
+{
+  "entities": {
+    "UserPrivateProfile": {
+      "title": "UserPrivateProfile",
+      "description": "Private user account containing PII, active role, KYC status, home/farm coordinates, regional language preference, and driver vehicle details.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID matching the document ID."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User full name."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["CONSUMER", "FARMER", "DRIVER"],
+          "description": "Active marketplace role."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Private phone number (PII)."
+        },
+        "kycStatus": {
+          "type": "string",
+          "enum": ["UNVERIFIED", "PENDING", "VERIFIED"],
+          "description": "KYC verification status."
+        },
+        "farmName": {
+          "type": "string",
+          "description": "Registered farm name for farmer role."
+        },
+        "city": {
+          "type": "string",
+          "description": "Town or district name."
+        },
+        "defaultAddress": {
+          "type": "string",
+          "description": "Private default delivery or farm pickup address (PII)."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Geographic latitude in decimal degrees."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Geographic longitude in decimal degrees."
+        },
+        "languageCode": {
+          "type": "string",
+          "enum": ["en", "hi", "ta", "mr"],
+          "description": "Regional UI language code."
+        },
+        "vehicleType": {
+          "type": "string",
+          "description": "Delivery vehicle category for drivers."
+        },
+        "vehiclePlate": {
+          "type": "string",
+          "description": "Delivery vehicle registration plate (PII)."
+        },
+        "driverActive": {
+          "type": "boolean",
+          "description": "Whether the driver is currently online for dispatch."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "role",
+        "phone",
+        "kycStatus",
+        "farmName",
+        "city",
+        "defaultAddress",
+        "latitude",
+        "longitude",
+        "languageCode",
+        "vehicleType",
+        "vehiclePlate",
+        "driverActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Non-PII public farmer or driver profile visible in marketplace discovery, with aggregated verified purchase ratings.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID matching document ID."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public display name."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["CONSUMER", "FARMER", "DRIVER"],
+          "description": "Current public marketplace role."
+        },
+        "farmName": {
+          "type": "string",
+          "description": "Public farm name."
+        },
+        "city": {
+          "type": "string",
+          "description": "Public locality or district."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Approximate farm/service area latitude."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Approximate farm/service area longitude."
+        },
+        "kycVerified": {
+          "type": "boolean",
+          "description": "Whether KYC is verified."
+        },
+        "averageRating": {
+          "type": "number",
+          "description": "Aggregated 0.0-5.0 star rating from verified purchases."
+        },
+        "ratingSum": {
+          "type": "integer",
+          "description": "Cumulative star rating sum."
+        },
+        "reviewCount": {
+          "type": "integer",
+          "description": "Total number of verified reviews."
+        },
+        "completedDeliveries": {
+          "type": "integer",
+          "description": "Total deliveries completed by driver."
+        },
+        "vehicleType": {
+          "type": "string",
+          "description": "Public driver vehicle type."
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["PUBLIC"],
+          "description": "Visibility scope marker."
+        },
+        "lastReviewedOrderId": {
+          "type": "string",
+          "description": "Optional order ID from the most recent atomic verified review."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "role",
+        "farmName",
+        "city",
+        "latitude",
+        "longitude",
+        "kycVerified",
+        "averageRating",
+        "ratingSum",
+        "reviewCount",
+        "completedDeliveries",
+        "vehicleType",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProduceListing": {
+      "title": "ProduceListing",
+      "description": "Live farm harvest listing with transparent farm-gate pricing, quantity in kg, harvest date, coordinates, and optional client-compressed crop photo.",
+      "type": "object",
+      "properties": {
+        "farmerId": {
+          "type": "string",
+          "description": "Firebase UID of the owning farmer."
+        },
+        "farmerName": {
+          "type": "string",
+          "description": "Display name of the farmer."
+        },
+        "farmName": {
+          "type": "string",
+          "description": "Farm name."
+        },
+        "cropName": {
+          "type": "string",
+          "description": "Name of the crop or produce batch."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["VEGETABLES", "FRUITS", "GRAINS", "DAIRY_HERBS"],
+          "description": "Produce category."
+        },
+        "pricePerKg": {
+          "type": "number",
+          "description": "Direct farm-gate price per kg in INR."
+        },
+        "marketComparePricePerKg": {
+          "type": "number",
+          "description": "Typical middleman/retail market price per kg for savings comparison."
+        },
+        "availableQtyKg": {
+          "type": "number",
+          "description": "Remaining available quantity in kg."
+        },
+        "harvestDate": {
+          "type": "string",
+          "description": "Harvest date string (YYYY-MM-DD)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Farming notes, organic practices, or batch details."
+        },
+        "city": {
+          "type": "string",
+          "description": "Farm village or district name."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Farm latitude for nearby radius queries."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Farm longitude for nearby radius queries."
+        },
+        "photoBase64": {
+          "type": "string",
+          "description": "Optional client-compressed JPEG thumbnail encoded in Base64."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "SOLD_OUT", "ARCHIVED"],
+          "description": "Listing lifecycle status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "farmerId",
+        "farmerName",
+        "farmName",
+        "cropName",
+        "category",
+        "pricePerKg",
+        "marketComparePricePerKg",
+        "availableQtyKg",
+        "harvestDate",
+        "description",
+        "city",
+        "latitude",
+        "longitude",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Direct farm-to-consumer order with itemized order_items, split settlement payout breakdown, and delivery driver workflow status.",
+      "type": "object",
+      "properties": {
+        "consumerId": {
+          "type": "string",
+          "description": "Firebase UID of the purchasing consumer."
+        },
+        "consumerName": {
+          "type": "string",
+          "description": "Consumer display name."
+        },
+        "farmerId": {
+          "type": "string",
+          "description": "Firebase UID of the fulfilling farmer."
+        },
+        "farmerName": {
+          "type": "string",
+          "description": "Farmer display name."
+        },
+        "farmName": {
+          "type": "string",
+          "description": "Pickup farm name."
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Assigned delivery driver UID or empty string while unclaimed."
+        },
+        "driverName": {
+          "type": "string",
+          "description": "Assigned driver display name."
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list (1-20) of order_items containing listingId, cropName, quantityKg, pricePerKg, lineTotal, farmerPayoutAmount."
+        },
+        "totalWeightKg": {
+          "type": "number",
+          "description": "Total order weight in kg."
+        },
+        "subtotalAmount": {
+          "type": "number",
+          "description": "Crop subtotal before delivery and platform fee."
+        },
+        "farmerPayoutAmount": {
+          "type": "number",
+          "description": "Direct split payout transferred to farmer."
+        },
+        "driverPayoutAmount": {
+          "type": "number",
+          "description": "Delivery payout earned by driver upon completion."
+        },
+        "platformFeeAmount": {
+          "type": "number",
+          "description": "Minimal platform service split."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount paid by consumer."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["PAID_SPLIT_SETTLED", "PENDING"],
+          "description": "Split-payment settlement status."
+        },
+        "paymentRef": {
+          "type": "string",
+          "description": "Payment/settlement reference identifier."
+        },
+        "deliveryStatus": {
+          "type": "string",
+          "enum": ["READY_FOR_PICKUP", "ASSIGNED", "PICKED_UP", "EN_ROUTE", "DELIVERED"],
+          "description": "Order fulfillment and delivery tracking status."
+        },
+        "pickupAddress": {
+          "type": "string",
+          "description": "Farm pickup location description."
+        },
+        "pickupLat": {
+          "type": "number",
+          "description": "Farm pickup latitude."
+        },
+        "pickupLng": {
+          "type": "number",
+          "description": "Farm pickup longitude."
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "Consumer drop-off address."
+        },
+        "deliveryLat": {
+          "type": "number",
+          "description": "Consumer drop-off latitude."
+        },
+        "deliveryLng": {
+          "type": "number",
+          "description": "Consumer drop-off longitude."
+        },
+        "distanceKm": {
+          "type": "number",
+          "description": "Route distance between farm and drop-off in km."
+        },
+        "reviewed": {
+          "type": "boolean",
+          "description": "Whether the consumer has submitted a verified review."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "deliveredAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional server timestamp when delivery completes."
+        }
+      },
+      "required": [
+        "consumerId",
+        "consumerName",
+        "farmerId",
+        "farmerName",
+        "farmName",
+        "driverId",
+        "driverName",
+        "items",
+        "totalWeightKg",
+        "subtotalAmount",
+        "farmerPayoutAmount",
+        "driverPayoutAmount",
+        "platformFeeAmount",
+        "totalAmount",
+        "paymentStatus",
+        "paymentRef",
+        "deliveryStatus",
+        "pickupAddress",
+        "pickupLat",
+        "pickupLng",
+        "deliveryAddress",
+        "deliveryLat",
+        "deliveryLng",
+        "distanceKm",
+        "reviewed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FarmerReview": {
+      "title": "FarmerReview",
+      "description": "Verified-purchase 1-5 star rating and review tied 1:1 to a delivered order.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Verified delivered order ID matching document ID."
+        },
+        "farmerId": {
+          "type": "string",
+          "description": "Reviewed farmer UID."
+        },
+        "farmerName": {
+          "type": "string",
+          "description": "Reviewed farmer display name."
+        },
+        "consumerId": {
+          "type": "string",
+          "description": "Reviewing consumer UID."
+        },
+        "consumerName": {
+          "type": "string",
+          "description": "Reviewing consumer display name."
+        },
+        "rating": {
+          "type": "integer",
+          "description": "Star rating from 1 to 5."
+        },
+        "comment": {
+          "type": "string",
+          "description": "Consumer written feedback."
+        },
+        "cropSummary": {
+          "type": "string",
+          "description": "Summary of crops purchased in the verified order."
+        },
+        "verifiedPurchase": {
+          "type": "boolean",
+          "description": "Always true; enforced by security rules against delivered order."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "orderId",
+        "farmerId",
+        "farmerName",
+        "consumerId",
+        "consumerName",
+        "rating",
+        "comment",
+        "cropSummary",
+        "verifiedPurchase",
+        "createdAt"
+      ]
+    },
+    "PayoutLedgerEntry": {
+      "title": "PayoutLedgerEntry",
+      "description": "User-scoped immutable ledger of driver delivery earnings, farmer direct settlements, and bank withdrawals.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Linked order ID or empty string for withdrawals."
+        },
+        "entryType": {
+          "type": "string",
+          "enum": ["DELIVERY_EARNING", "FARMER_SETTLEMENT", "WITHDRAWAL"],
+          "description": "Ledger transaction type."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Transaction amount in INR."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["CREDITED", "WITHDRAWN"],
+          "description": "Settlement state."
+        },
+        "note": {
+          "type": "string",
+          "description": "Human-readable ledger description."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "orderId",
+        "entryType",
+        "amount",
+        "status",
+        "note",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPrivateProfile" },
+      "description": "Owner-only private profile document holding PII, active role, KYC status, coordinates, language, and driver vehicle plate."
+    },
+    "/users/{userId}/payouts/{payoutId}": {
+      "schema": { "$ref": "#/entities/PayoutLedgerEntry" },
+      "description": "Owner-only earnings and withdrawal ledger for drivers and farmers."
+    },
+    "/public_profiles/{profileId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Non-PII public farmer and driver cards with atomically updated verified purchase ratings."
+    },
+    "/produce_listings/{listingId}": {
+      "schema": { "$ref": "#/entities/ProduceListing" },
+      "description": "Live direct-from-farm produce inventory with farmer RBAC and atomic checkout stock decrements."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Consumer purchases with itemized order_items, split settlement calculations, and delivery driver workflow."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/FarmerReview" },
+      "description": "Tamper-proof 1-5 star reviews strictly linked to delivered orders (reviewId == orderId)."
+    }
+  }
+}
